@@ -7,4 +7,5 @@
                #:esrap
                #:cl-ppcre)
   :components ((:file "package")
-	       (:file "semver")))
+	       (:file "semver"))
+  :in-order-to ((asdf:test-op (asdf:test-op :cl-semver-test))))
