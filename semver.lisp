@@ -48,6 +48,7 @@
       (not (null (ppcre:scan +version-re+ string)))))
 
 (defun read-version-from-string (string &optional (class 'semantic-version))
+  "Parses a semantic version from a string"
   (when (typep string 'version)
     (return-from read-version-from-string string))
   (when (not (version-valid-p string))
@@ -69,7 +70,8 @@
     (when (not (version-valid-p version-string))
       (error "Version ~S is not valid" version-string))))
 
-(defun print-version (version stream)
+(defun print-version (version &optional stream)
+  "Prints a version to a stream"
   (cond
     ((equalp version :max-version)
      (format stream "latest"))
@@ -86,6 +88,7 @@
        (format stream "+~A" (version-build version))))))
 
 (defun print-version-to-string (version)
+  "Prints a version to a string"
   (with-output-to-string (s)
     (print-version version s)))
 
@@ -96,8 +99,12 @@
   (typep object 'version))
 
 ;; Version comparison
+(defgeneric version= (version1 version2)
+  (:documentation "Version equality comparison"))
+
 (defmethod version= (version1 version2)
   nil)
+
 (defmethod version= ((version1 version) (version2 version))
   (and (equalp (version-major version1)
 	       (version-major version2))
@@ -110,8 +117,12 @@
        (equalp (version-build version1)
 	       (version-build version2))))
 
+(defgeneric version== (version1 version2)
+  (:documentation "Version shallow equality comparison"))
+
 (defmethod version== (version1 version2)
   nil)
+
 (defmethod version== ((version1 version) (version2 version))
   (and (version= version1 version2)
        (equalp (version-pre-release version1)
@@ -119,16 +130,26 @@
        (equalp (version-build version1)
 	       (version-build version2))))
 
+(defgeneric version/= (version1 version2)
+  (:documentation "Version distinct comparison"))
+
 (defmethod version/= (version1 version2)
   t)
 
 (defmethod version/= ((version1 version) (version2 version))
   (not (version= version1 version2)))
 
+(defgeneric version/== (version1 version2)
+  (:documentation "Version shallow distinct comparison"))
+
 (defmethod version/== (version1 version2)
   t)
+
 (defmethod version/== ((version1 version) (version2 version))
   (not (version== version1 version2)))
+
+(defgeneric version< (version1 version2)
+  (:documentation "Version less than comparison"))
 
 (defmethod version< ((version1 (eql :min-version)) version2)
   t)
@@ -147,17 +168,21 @@
 		(version-patch version2))))
 
 (defun version<= (version1 version2)
+  "Version less or equal comparison"
   (or (version= version1 version2)
       (version< version1 version2)))
 
 (defun version> (version1 version2)
+  "Version greater than comparison"
   (not (version<= version1 version2)))
 
 (defun version>= (version1 version2)
+  "Version greater or equal comparison"
   (or (version= version1 version2)
       (version> version1 version2)))
 
 (defun make-semantic-version (major minor patch &optional pre-release build)
+  "Creates a semantic version"
   (make-instance 'semantic-version
 		 :major major
 		 :minor minor

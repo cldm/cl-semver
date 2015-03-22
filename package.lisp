@@ -23,4 +23,5 @@
 	   #:version>=
 	   #:enable-version-syntax
 	   #:disable-version-syntax
-	   #:versionp))
+	   #:versionp)
+  (:documentation "cl-semver is a Common Lisp implementation of the Semantic Versioning Specification (http://semver.org/"))
