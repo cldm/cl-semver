@@ -1,6 +1,6 @@
 # CL-SEMVER
 
-cl-semver is a Common Lisp implementation of the Semantic Versioning Specification (http://semver.org/).
+cl-semver is a Common Lisp implementation of the Semantic Versioning Specification (http://semver.org/
 
 ## Functions
 ### %disable-version-syntax nil
@@ -12,12 +12,32 @@ Internal function used to enable reader syntax and store current
 readtable on stack.
 
 
+### make-semantic-version (major minor patch &optional pre-release build)
+Creates a semantic version
+
+
 ### print-version (version &optional stream)
 Prints a version to a stream
 
 
 ### print-version-to-string (version)
 Prints a version to a string
+
+
+### read-version-from-string (string &optional (class (quote semantic-version)))
+Parses a semantic version from a string
+
+
+### version<= (version1 version2)
+Version less or equal comparison
+
+### version> (version1 version2)
+Version greater than comparison
+
+
+### version>= (version1 version2)
+Version greater or equal comparison
+
 
 ## Macros
 ### disable-version-syntax
