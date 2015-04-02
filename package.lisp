@@ -1,6 +1,6 @@
 (defpackage :cl-semver
   (:nicknames :semver)
-  (:use :cl)
+  (:use :cl :esrap)
   (:export #:read-version-from-string
 	   #:print-version
 	   #:print-version-to-string

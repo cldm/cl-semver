@@ -20,11 +20,13 @@
     (loop for version in valid-versions
        do (is (version-valid-p version))))
 
-  (let ((invalid-versions (list "1.2" "1.2.a")))
+  (let ((invalid-versions (list "1.2.a")))
     (loop for version in invalid-versions
        do (is (not (version-valid-p version)))))
-  (let ((pre-releases (list "1.0.0-alpha" "1.0.0-alpha.1" "1.0.0-0.3.7" "1.0.0-x.7.z.92")))
-    ))
+  (let ((pre-releases (list "1.0.0-alpha" "1.0.0-alpha.1" 
+			    "1.0.0-0.3.7" "1.0.0-x.7.z.92")))
+    (loop for version in pre-releases do
+	 (is (version-valid-p version)))))
 
 (deftest version-construction-test ()
   (let ((v1 (read-version-from-string "1.2.0" 'semantic-version))
@@ -41,10 +43,6 @@
     (make-semantic-version 1 "a" 0))
   (signals error
     (make-semantic-version 1 2 "a"))
-  #+nil(signals error
-    (make-semantic-version 1 2 0 "alpha"))
-  #+nil(signals error
-    (make-semantic-version 1 2 0 nil "build.1"))
   (signals error
     (read-version-from-string "1.2.a" 'semantic-version)))
 

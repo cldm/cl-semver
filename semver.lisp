@@ -41,11 +41,83 @@
 	       (tuple< (rest t1)
 		       (rest t2)))))))
 
-(defparameter +version-re+ "^(\\d+).(\\d+).(\\d+)(?:-([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$")
+(defgeneric validate-version (version)
+  (:documentation "Validate a version"))
 
-(defun version-valid-p (string)
+(defmethod validate-version ((version semantic-version))
+  (with-slots (major minor patch build pre-release) version
+    (when (not (and (integerp major)
+		    (or (zerop major)
+			(plusp major))))
+      (error "Invalid version major: ~A in ~A" major version))
+    (when (not (and (integerp minor)
+		    (or (zerop minor)
+			(plusp minor))))
+      (error "Invalid version minor: ~A in ~A" minor version))
+    (when (not (and (integerp patch)
+		    (or (zerop patch)
+			(plusp patch))))
+      (error "Invalid version patch: ~A in ~A" patch version))
+    (when (and build
+	       (not (ignore-errors (parse 'version-build build))))
+      (error "Invalid version build: ~A in ~A" build version))
+    (when (and pre-release
+	       (not (ignore-errors (parse 'version-pre-release pre-release))))
+      (error "Invalid version pre-release: ~A in ~A" pre-release version))
+    T))
+
+(defmethod validate-version ((version (eql :max-version)))
+    t)
+
+(defmethod validate-version ((version (eql :min-version)))
+    t)
+
+(defmethod validate-version (version)
+    (error "Invalid version: ~A" version))
+
+(defmethod initialize-instance :after ((version semantic-version) &rest initargs)
+  (declare (ignore initargs))
+  (validate-version version))
+
+;; Version parser
+
+(defrule spaces (+ #\ ))
+
+(defrule decimal (+ (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9"))
+  (:function (lambda (list)
+	       (parse-integer (format nil "~{~A~}" list)))))
+
+(defrule version-build (+ (or (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9")
+			      (character-ranges (#\a #\z) (#\A #\Z) #\_ #\.)))
+  (:text t))
+
+(defrule version-pre-release (+ (or (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9")
+				    (character-ranges (#\a #\z) (#\A #\Z) #\_ #\.)))
+  (:text t))
+
+(defrule version (and decimal 
+                      (? (and #\. decimal))
+                      (? (and #\. decimal))
+		      (? (and #\- version-pre-release))
+		      (? (and #\+ version-build)))
+  (:function (lambda (match)
+	       (destructuring-bind (major minor patch pre-release build) match
+		 (make-semantic-version major 
+					(or (and minor
+						 (second minor))
+					    0)
+					(or (and patch 
+						 (second patch))
+					    0)
+					(and pre-release
+					     (second pre-release))
+					(and build
+					     (second build)))))))
+
+(defun version-string-valid-p (string)
+  "Validate a version string"
   (or (equalp string "latest")
-      (not (null (ppcre:scan +version-re+ string)))))
+      (not (null (ignore-errors (parse 'version string))))))
 
 (defun read-version-from-string (string &optional (class 'semantic-version))
   "Parses a semantic version from a string"
@@ -55,20 +127,7 @@
     (error "Could not parse version string ~S" string))
   (when (equalp string "latest")
     (return-from read-version-from-string :max-version))
-  (ppcre:register-groups-bind (major minor patch pre-release build)
-      (+version-re+ string)
-    (make-instance class
-		   :major (parse-integer major)
-		   :minor (parse-integer minor)
-		   :patch (parse-integer patch)
-		   :pre-release pre-release
-		   :build build)))
-
-(defmethod initialize-instance :after ((version semantic-version) &rest initargs)
-  ;; Validate the version
-  (let ((version-string (print-version-to-string version)))
-    (when (not (version-valid-p version-string))
-      (error "Version ~S is not valid" version-string))))
+  (parse 'version string))
 
 (defun print-version (version &optional stream)
   "Prints a version to a stream"
@@ -190,9 +249,10 @@
 		 :pre-release pre-release
 		 :build build))
 
-;; Version syntax
+;; Reader syntax
 
 (defvar *previous-readtables* nil)
+
 (defun version-syntax-reader (stream subchar arg)
   (declare (ignore subchar arg))
   (read-version-from-string (read stream t)))
@@ -227,15 +287,11 @@ readtable is used."
 
 (defmethod make-load-form ((version version) &optional environment)
   (declare (ignore environment))
-  (with-slots (major minor patch)
+  (with-slots (major minor patch build pre-release)
       version
-    `(make-instance 'semantic-version :major ,major
+    `(make-instance 'semantic-version 
+		    :major ,major
 		    :minor ,minor
-		    :patch ,patch)))
-
-#+nil(defsyntax version-syntax
-  (:dispatch-macro-char #\# #\v #'version-syntax-reader))
-
-;; TODO: do something about version precedence and pre-release
-;;
-;; Precedence refers to how versions are compared to each other when ordered. Precedence MUST be calculated by separating the version into major, minor, patch and pre-release identifiers in that order (Build metadata does not figure into precedence). Precedence is determined by the first difference when comparing each of these identifiers from left to right as follows: Major, minor, and patch versions are always compared numerically. Example: 1.0.0 < 2.0.0 < 2.1.0 < 2.1.1. When major, minor, and patch are equal, a pre-release version has lower precedence than a normal version. Example: 1.0.0-alpha < 1.0.0. Precedence for two pre-release versions with the same major, minor, and patch version MUST be determined by comparing each dot separated identifier from left to right until a difference is found as follows: identifiers consisting of only digits are compared numerically and identifiers with letters or hyphens are compared lexically in ASCII sort order. Numeric identifiers always have lower precedence than non-numeric identifiers. A larger set of pre-release fields has a higher precedence than a smaller set, if all of the preceding identifiers are equal. Example: 1.0.0-alpha < 1.0.0-alpha.1 < 1.0.0-alpha.beta < 1.0.0-beta < 1.0.0-beta.2 < 1.0.0-beta.11 < 1.0.0-rc.1 < 1.0.0.
+		    :patch ,patch
+		    :build ,build
+		    :pre-release ,pre-release)))
