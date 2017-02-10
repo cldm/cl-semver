@@ -18,15 +18,15 @@
 			      "1.2.0+build" "1.2.0+build.1"
 			      "1.2.0-alpha+build" "1.2.0-alpha.1+build.2")))
     (loop for version in valid-versions
-       do (is (version-valid-p version))))
+       do (is (version-string-valid-p version))))
 
   (let ((invalid-versions (list "1.2.a")))
     (loop for version in invalid-versions
-       do (is (not (version-valid-p version)))))
+       do (is (not (version-string-valid-p version)))))
   (let ((pre-releases (list "1.0.0-alpha" "1.0.0-alpha.1" 
 			    "1.0.0-0.3.7" "1.0.0-x.7.z.92")))
     (loop for version in pre-releases do
-	 (is (version-valid-p version)))))
+	 (is (version-string-valid-p version)))))
 
 (deftest version-construction-test ()
   (let ((v1 (read-version-from-string "1.2.0" 'semantic-version))

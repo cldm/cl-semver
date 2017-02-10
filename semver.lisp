@@ -123,7 +123,7 @@
   "Parses a semantic version from a string"
   (when (typep string 'version)
     (return-from read-version-from-string string))
-  (when (not (version-valid-p string))
+  (when (not (version-string-valid-p string))
     (error "Could not parse version string ~S" string))
   (when (equalp string "latest")
     (return-from read-version-from-string :max-version))
