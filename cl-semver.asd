@@ -4,7 +4,8 @@
   :author "Mariano Montone"
   :license "MIT"
   :depends-on (#:alexandria
-               #:esrap)
+               #:esrap
+               #:named-readtables)
   :components ((:file "package")
                (:file "semver"))
   :in-order-to ((asdf:test-op (asdf:test-op :cl-semver-test))))

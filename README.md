@@ -111,3 +111,7 @@ Library version
 
 ## Conditions
 ## Constants
+## Readtables
+
+### semver-syntax
+The named readtable implementing the specialized semver reader using `#v`.
