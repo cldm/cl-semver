@@ -12,6 +12,7 @@
 	   #:version-minor
 	   #:version-patch
 	   #:version-pre-release
+       #:version-pre-release-identifiers
 	   #:version-build
 	   #:version=
 	   #:version==

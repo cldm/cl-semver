@@ -125,11 +125,11 @@
   )
 
 (deftest build-metadata-version-precedence-test ()
-  "Build metadata SHOULD be ignored when determining version precedence. Thus two versions that differ only in the build metadata, have the same precedence. Examples: 1.0.0-alpha+001, 1.0.0+20130313144700, 1.0.0-beta+exp.sha.5114f85."
+  "Build metadata SHOULD be ignored when determining version precedence. Thus two versions that differ only in the build metadata, have the same precedence. Examples: 1.0.0-alpha+001, 1.0.0-alpha+20130313144700, 1.0.0-alpha+exp.sha.5114f85."
   (let ((versions (mapcar #'read-version-from-string
                           (list "1.0.0-alpha+001"
-                                "1.0.0+20130313144700"
-                                "1.0.0-beta+exp.sha.5114f85"))))
+                                "1.0.0-alpha+20130313144700"
+                                "1.0.0-alpha+exp.sha.5114f85"))))
     (loop for v1 in versions
           for v2 in (cdr versions)
           do (progn
