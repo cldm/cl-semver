@@ -21,17 +21,24 @@
           :initform (error "Provide the patch version number")
           :type integer
           :documentation "The patch (or micro) version number")
-   (pre-release :initarg :pre-release
-                :accessor version-pre-release
-                :initform nil
-                :type (or integer string null)
-                :documentation "The pre release version number")
+   (pre-release-identifiers :accessor version-pre-release-identifiers
+                            :initform nil
+                            :type list
+                            :documentation "The list of pre release version identifiers")
    (build :initarg :build
           :accessor version-build
           :initform nil
           :type (or integer string null)
           :documentation "The build version number"))
-  (:documentation "Instances represent a full version according to the semantic version specs (version 2.0.0-rc1 of the spec). http://semver.org/ . The main features of this class are validation and version comparison."))
+  (:documentation "Instances represent a full version according to the semantic version specs (version 2.0.0 of the spec). http://semver.org/ . The main features of this class are validation and version comparison."))
+
+(defmethod version-pre-release ((version semantic-version))
+  (when (version-pre-release-identifiers version)
+    (format nil "~{~A~^.~}" (version-pre-release-identifiers version))))
+
+(defmethod (setf version-pre-release) (new-value (version semantic-version))
+  (with-slots (pre-release-identifiers) version
+    (setf pre-release-identifiers (parse 'pre-release new-value))))
 
 (defun tuple< (t1 t2)
   (when (and t1 t2)
@@ -46,7 +53,7 @@
   (:documentation "Validate a version"))
 
 (defmethod validate-version ((version semantic-version))
-  (with-slots (major minor patch build pre-release) version
+  (with-slots (major minor patch build pre-release-identifiers) version
     (when (not (and (integerp major)
                     (or (zerop major)
                         (plusp major))))
@@ -62,9 +69,13 @@
     (when (and build
                (not (ignore-errors (parse 'version-build build))))
       (error "Invalid version build: ~A in ~A" build version))
-    (when (and pre-release
-               (not (ignore-errors (parse 'version-pre-release pre-release))))
-      (error "Invalid version pre-release: ~A in ~A" pre-release version))
+    (when (and pre-release-identifiers
+               (not (ignore-errors
+                     (mapcar (lambda (identifier)
+                               (or (integerp identifier)
+                                   (parse 'version-pre-release-identifier-non-numeric identifier)))
+                             pre-release-identifiers))))
+      (error "Invalid version pre-release: ~{~A~^.~} in ~A" pre-release-identifiers version))
     T))
 
 (defmethod validate-version ((version (eql :max-version)))
@@ -76,25 +87,40 @@
 (defmethod validate-version (version)
   (error "Invalid version: ~A" version))
 
-(defmethod initialize-instance :after ((version semantic-version) &rest initargs)
+(defmethod initialize-instance :after ((version semantic-version) &rest initargs &key pre-release)
   (declare (ignore initargs))
+  (with-slots (pre-release-identifiers) version
+    (if (listp pre-release)
+        (setf pre-release-identifiers pre-release)
+        (setf pre-release-identifiers (parse 'version-pre-release pre-release))))
   (validate-version version))
 
 ;; Version parser
 
 (defrule spaces (+ #\ ))
 
-(defrule decimal (+ (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9"))
-  (:function (lambda (list)
-               (parse-integer (format nil "~{~A~}" list)))))
+(defrule decimal (or "0"
+                     (and (character-ranges (#\1 #\9)) (* (character-ranges (#\0 #\9)))))
+  (:function (lambda (match)
+               (if (listp match)
+                   (parse-integer (format nil "~A~{~A~}" (first match) (second match)))
+                   (parse-integer match)))))
 
 (defrule version-build (+ (or (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9")
-                              (character-ranges (#\a #\z) (#\A #\Z) #\_ #\.)))
+                              (character-ranges (#\a #\z) (#\A #\Z) #\- #\.)))
   (:text t))
 
-(defrule version-pre-release (+ (or (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9")
-                                    (character-ranges (#\a #\z) (#\A #\Z) #\_ #\.)))
+(defrule version-pre-release-identifier-non-numeric (+ (or (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9")
+                                                           (character-ranges (#\a #\z) (#\A #\Z) #\-)))
   (:text t))
+
+(defrule version-pre-release-identifier (or decimal version-pre-release-identifier-non-numeric))
+
+(defrule version-pre-release (and version-pre-release-identifier
+                                  (* (and #\. version-pre-release-identifier)))
+  (:function (lambda (match)
+               (destructuring-bind (segment-1 (&rest remaining-segments)) match
+                 (list* segment-1 (mapcar #'second remaining-segments))))))
 
 (defrule version (and decimal
                       (? (and #\. decimal))
@@ -159,6 +185,38 @@
   (typep object 'version))
 
 ;; Version comparison
+(defun prerelease< (identifiers1 identifiers2)
+  "Returns non-NIL if the first list of pre-release identifiers is less than the
+second. Any non-empty list of identifiers is < an empty list. If both are non
+empty, they are compared element by element. An integer is always < a
+string. Strings are compared lexically. If the first list is shorter than the
+second and the first is a prefix of the second, the first is < than the second."
+  (labels ((prerelease<-1 (identifiers1 identifiers2)
+             (let ((left1 (first identifiers1))
+                   (left-rest (rest identifiers1))
+                   (right1 (first identifiers2))
+                   (right-rest (rest identifiers2)))
+               (cond
+                 ((null left1)
+                  (and right1
+                       t))
+                 ((null right1)
+                  nil)
+                 ((integerp left1)
+                  (if (integerp right1)
+                      (or (< left1 right1)
+                          (and (<= left1 right1)
+                               (prerelease<-1 left-rest right-rest)))
+                      t))
+                 ((integerp right1)
+                  nil)
+                 (t
+                  (or (string< left1 right1)
+                      (and (string<= left1 right1)
+                           (prerelease<-1 left-rest right-rest))))))))
+    (or (and identifiers1 (null identifiers2))
+        (and identifiers1 identifiers2 (prerelease<-1 identifiers1 identifiers2)))))
+
 (defgeneric version= (version1 version2)
   (:documentation "Version equality comparison"))
 
@@ -166,16 +224,14 @@
   nil)
 
 (defmethod version= ((version1 version) (version2 version))
-  (and (equalp (version-major version1)
-               (version-major version2))
-       (equalp (version-minor version1)
-               (version-minor version2))
-       (equalp (version-patch version1)
-               (version-patch version2))
-       (equalp (version-pre-release version1)
-               (version-pre-release version2))
-       (equalp (version-build version1)
-               (version-build version2))))
+  (and (= (version-major version1)
+          (version-major version2))
+       (= (version-minor version1)
+          (version-minor version2))
+       (= (version-patch version1)
+          (version-patch version2))
+       (equal (version-pre-release version1)
+              (version-pre-release version2))))
 
 (defgeneric version== (version1 version2)
   (:documentation "Version shallow equality comparison"))
@@ -185,10 +241,8 @@
 
 (defmethod version== ((version1 version) (version2 version))
   (and (version= version1 version2)
-       (equalp (version-pre-release version1)
-               (version-pre-release version2))
-       (equalp (version-build version1)
-               (version-build version2))))
+       (equal (version-build version1)
+              (version-build version2))))
 
 (defgeneric version/= (version1 version2)
   (:documentation "Version distinct comparison"))
@@ -234,13 +288,8 @@
                         (list (version-major version2)
                               (version-minor version2)
                               (version-patch version2)))
-                (or (and (null (version-pre-release version2))
-                         (not (null (version-pre-release version1))))
-                    (and (not (null (version-pre-release version1)))
-                         (not (null (version-pre-release version2)))
-                         (and (string< (version-pre-release version1)
-                                       (version-pre-release version2))
-                              t)))))))
+                (prerelease< (version-pre-release-identifiers version1)
+                             (version-pre-release-identifiers version2))))))
 
 (defun version<= (version1 version2)
   "Version less or equal comparison"
@@ -303,11 +352,11 @@ readtable is used."
 
 (defmethod make-load-form ((version version) &optional environment)
   (declare (ignore environment))
-  (with-slots (major minor patch build pre-release)
+  (with-slots (major minor patch build)
       version
     `(make-instance 'semantic-version
                     :major ,major
                     :minor ,minor
                     :patch ,patch
                     :build ,build
-                    :pre-release ,pre-release)))
+                    :pre-release ,(version-pre-release version))))

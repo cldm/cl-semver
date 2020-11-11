@@ -95,6 +95,12 @@ The pre release version number
 ### (setf version-pre-release)
 The pre release version number
 
+### version-pre-release-identifiers
+The pre release segment, broken into a list of strings and integers.
+
+### (setf version-pre-release-identifiers)
+The pre release segment, broken into a list of strings and integers.
+
 ## Variables
 ## Classes
 ### semantic-version
