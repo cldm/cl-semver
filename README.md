@@ -115,3 +115,5 @@ Library version
 
 ### semver-syntax
 The named readtable implementing the specialized semver reader using `#v`.
+You can use the #v syntax by doing:
+`(named-readtables:in-readtable cl-semver:semver-syntax)`
