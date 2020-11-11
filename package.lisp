@@ -1,6 +1,6 @@
 (defpackage :cl-semver
   (:nicknames :semver)
-  (:use :cl :esrap)
+  (:use :cl :esrap :named-readtables)
   (:export #:read-version-from-string
 	   #:print-version
 	   #:print-version-to-string
@@ -23,5 +23,6 @@
 	   #:version>=
 	   #:enable-version-syntax
 	   #:disable-version-syntax
+       #:semver-syntax
 	   #:versionp)
   (:documentation "cl-semver is a Common Lisp implementation of the Semantic Versioning Specification (http://semver.org/"))

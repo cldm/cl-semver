@@ -273,6 +273,10 @@
   (declare (ignore subchar arg))
   (read-version-from-string (read stream t)))
 
+(defreadtable semver-syntax
+  (:merge :standard)
+  (:dispatch-macro-char #\# #\v #'version-syntax-reader))
+
 (defun %enable-version-syntax ()
   "Internal function used to enable reader syntax and store current
 readtable on stack."
