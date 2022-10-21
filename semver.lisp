@@ -146,6 +146,9 @@
   (or (equalp string "latest")
       (not (null (ignore-errors (parse 'version string))))))
 
+(deftype semantic-version-string ()
+  '(and string (satisfies version-string-valid-p)))
+
 (defun read-version-from-string (string)
   "Parses a semantic version from a string"
   (when (typep string 'version)

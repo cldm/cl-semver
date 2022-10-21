@@ -8,6 +8,7 @@
 	   #:semantic-version
 	   #:make-semantic-version
 	   #:version-string-valid-p
+           #:semantic-version-string
 	   #:version-major
 	   #:version-minor
 	   #:version-patch
