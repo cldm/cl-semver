@@ -1,6 +1,13 @@
 (defpackage :cl-semver
   (:nicknames :semver)
-  (:use :cl :esrap :named-readtables)
+  (:use :cl)
+  (:import-from #:esrap
+                #:defrule
+                #:character-ranges
+                #:parse
+                #:?)
+  (:import-from #:named-readtables
+                #:defreadtable)
   (:export #:read-version-from-string
 	   #:print-version
 	   #:print-version-to-string
