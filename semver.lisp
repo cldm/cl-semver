@@ -236,6 +236,18 @@ second and the first is a prefix of the second, the first is < than the second."
        (equal (version-pre-release version1)
               (version-pre-release version2))))
 
+(defmethod version= ((version1 string) (version2 string))
+  (version= (read-version-from-string version1)
+            (read-version-from-string version2)))
+
+(defmethod version= ((version1 version) (version2 string))
+  (version= version1
+            (read-version-from-string version2)))
+
+(defmethod version= ((version1 string) (version2 version))
+  (version= (read-version-from-string version1)
+            version2))
+
 (defgeneric version== (version1 version2)
   (:documentation "Version shallow equality comparison"))
 
@@ -247,6 +259,17 @@ second and the first is a prefix of the second, the first is < than the second."
        (equal (version-build version1)
               (version-build version2))))
 
+(defmethod version== ((version1 string) (version2 string))
+  (version== (read-version-from-string version1)
+             (read-version-from-string version2)))
+
+(defmethod version== ((version1 version) (version2 string))
+  (version== version1 (read-version-from-string version2)))
+
+(defmethod version== ((version1 string) (version2 version))
+  (version== (read-version-from-string version1)
+             version2))
+
 (defgeneric version/= (version1 version2)
   (:documentation "Version distinct comparison"))
 
@@ -256,6 +279,18 @@ second and the first is a prefix of the second, the first is < than the second."
 (defmethod version/= ((version1 version) (version2 version))
   (not (version= version1 version2)))
 
+(defmethod version/= ((version1 string) (version2 string))
+  (version/= (read-version-from-string version1)
+             (read-version-from-string version2)))
+
+(defmethod version/= ((version1 version) (version2 string))
+  (version/= version1
+             (read-version-from-string version2)))
+
+(defmethod version/= ((version1 string) (version2 version))
+  (version/= (read-version-from-string version1)
+             version2))
+
 (defgeneric version/== (version1 version2)
   (:documentation "Version shallow distinct comparison"))
 
@@ -264,6 +299,18 @@ second and the first is a prefix of the second, the first is < than the second."
 
 (defmethod version/== ((version1 version) (version2 version))
   (not (version== version1 version2)))
+
+(defmethod version/== ((version1 string) (version2 string))
+  (version/== (read-version-from-string version1)
+              (read-version-from-string version2)))
+
+(defmethod version/= ((version1 version) (version2 string))
+  (version/== version1
+              (read-version-from-string version2)))
+
+(defmethod version/= ((version1 string) (version2 version))
+  (version/== (read-version-from-string version1)
+              version2))
 
 (defgeneric version< (version1 version2)
   (:documentation "Version less than comparison"))
@@ -293,6 +340,18 @@ second and the first is a prefix of the second, the first is < than the second."
                               (version-patch version2)))
                 (prerelease< (version-pre-release-identifiers version1)
                              (version-pre-release-identifiers version2))))))
+
+(defmethod version< ((version1 string) (version2 string))
+  (version< (read-version-from-string version1)
+            (read-version-from-string version2)))
+
+(defmethod version< ((version1 version) (version2 string))
+  (version< version1
+            (read-version-from-string version2)))
+
+(defmethod version< ((version1 string) (version2 version))
+  (version< (read-version-from-string version1)
+            version2))
 
 (defun version<= (version1 version2)
   "Version less or equal comparison"
